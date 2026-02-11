@@ -6,7 +6,7 @@ class HTMLNode():
         self.props = props
 
     def to_html(self):
-        raise Exception(NotImplementedError)
+        raise NotImplementedError("to_html must be implemented by subclasses")
     
     def props_to_html(self):
         if self.props:
@@ -15,3 +15,32 @@ class HTMLNode():
 
     def __repr__(self):
         return f"HTMLNode(tag={self.tag}, value={self.value}, children={self.children}, props={self.props})"
+
+class ParentNode(HTMLNode):
+    def __init__(self, tag, children, props=None):
+        super().__init__(tag=tag, value=None, children=children, props=props)
+
+    def to_html(self):
+        if not self.tag:
+            return ValueError("Tag cannot be None")
+        if not self.children:
+            return ValueError("Children cannot be None")
+        children_html = ''.join([child.to_html() for child in self.children])
+        return f"<{self.tag}{self.props_to_html()}>{children_html}</{self.tag}>"
+    
+    def __repr__(self):
+        return f"HTMLNode(tag={self.tag}, children={self.children}, props={self.props})"
+
+class LeafNode(HTMLNode):
+    def __init__(self, tag, value, props=None):
+        super().__init__(tag=tag, value=value, children=None, props=props)
+
+    def to_html(self):
+        if not self.value:
+            return ValueError("Value cannot be None")
+        if not self.tag:
+            return self.value
+        return f"<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>"
+    
+    def __repr__(self):
+        return f"HTMLNode(tag={self.tag}, value={self.value}, props={self.props})"
