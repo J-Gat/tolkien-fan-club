@@ -1,4 +1,3 @@
-import sys
 from textnode import TextNode, TextType
 
 def main():
@@ -7,4 +6,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
