@@ -1,6 +1,7 @@
 import re
-
-from textnode import TextNode, TextType
+from textnode import TextNode, TextType, text_node_to_html_node
+from blocktype import BlockType, block_to_block_type
+from htmlnode import HTMLNode, ParentNode, LeafNode
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
     new_nodes = []
@@ -102,3 +103,58 @@ def text_to_textnodes(text):
 def markdown_to_blocks(markdown):
     blocks = markdown.split("\n\n")
     return [block.strip() for block in blocks if block.strip()]
+
+def markdown_to_html_node(markdown):
+    blocks = markdown_to_blocks(markdown)
+
+    parents = []
+    for block in blocks:
+        block_type = block_to_block_type(block)
+        if block_type == BlockType.HEADING:
+            count = len(block) - len(block.lstrip('#'))
+            children = block.lstrip('#').strip()
+            parents.append(ParentNode(f"h{count}", text_to_children(children)))
+           
+        elif block_type == BlockType.ULIST:
+            children = multiline_markdown_text_to_children(block, "- ", "li")
+            parents.append(ParentNode("ul", children))
+
+        elif block_type == BlockType.OLIST:
+            children = multiline_markdown_OLIST_text_to_children(block)
+            parents.append(ParentNode("ol", children))
+
+        elif block_type == BlockType.QUOTE:
+            child = ""
+            for line in block.split("\n"):
+                child += line.lstrip("> ") + " "
+            children = text_to_children(child)
+            parents.append(ParentNode("blockquote", children))
+
+        elif block_type == BlockType.CODE:
+            block = block.strip("`").lstrip("\n")
+            parents.append(ParentNode("pre", [text_node_to_html_node(TextNode(block, TextType.CODE))]))
+
+        else:
+            parents.append(ParentNode("p", text_to_children(block.replace("\n", " "))))
+    
+    return ParentNode("div", parents)
+
+def text_to_children(text):
+    text_nodes = text_to_textnodes(text)
+    return [text_node_to_html_node(node) for node in text_nodes]
+
+def multiline_markdown_text_to_children(text, prefix, html_tag):
+    lines = text.split("\n")
+    children = []
+    for line in lines:
+        line = line.lstrip(prefix)
+        children.append(ParentNode(html_tag, text_to_children(line)))
+    return children
+
+def multiline_markdown_OLIST_text_to_children(text):
+    lines = text.split("\n")
+    children = []
+    for line in lines:
+        line = line.split(". ", 1)[1]
+        children.append(ParentNode("li", text_to_children(line)))
+    return children
