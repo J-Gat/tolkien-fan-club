@@ -9,12 +9,17 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
         if node.text_type != TextType.TEXT:
             new_nodes.append(node)
         else:
-            parts = node.text.split(delimiter)
-
-            # If there is only one part, we're done
-            if len(parts) == 1:
+            # Count delimiters early to check for balance
+            delimiter_count = node.text.count(delimiter)
+            if delimiter_count % 2 == 1:
+                # Odd number of delimiters means they're unmatched
+                raise Exception(f"Unmatched delimiter '{delimiter}' in text: {node.text}")
+            if delimiter_count == 0:
+                # No delimiters, just append and continue
                 new_nodes.append(node)
                 continue
+            
+            parts = node.text.split(delimiter)
 
             # If the beginning or end of the node.text is the delimiter we need to remove those empty parts
             parts = [s for s in parts if s]
@@ -24,14 +29,6 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
                 even_is_TEXT = False
             else:
                 even_is_TEXT = True
-
-            # Now we check to ensure we had matching delimiters. Have to handle if the delimiter was at the end of node.text
-            if len(parts) % 2 == 0:
-                if even_is_TEXT and not node.text[-len(delimiter):] == delimiter:
-                    raise Exception("Unmatched delimiter")
-            else:
-                if not even_is_TEXT:
-                    raise Exception("Unmatched delimiter")
 
             # Now loop over the parts and create the new nodes
             i = 0            
@@ -100,6 +97,13 @@ def text_to_textnodes(text):
     nodes = split_nodes_link(nodes)
     return nodes
 
+def extract_title(markdown):
+    blocks = markdown_to_blocks(markdown)
+    for block in blocks:
+        if block.startswith("# "):
+            return block[2:].strip()
+    return "Untitled"
+    
 def markdown_to_blocks(markdown):
     blocks = markdown.split("\n\n")
     return [block.strip() for block in blocks if block.strip()]
